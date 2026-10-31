@@ -1,0 +1,609 @@
+
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>線上暗棋</title>
+<style>
+*{box-sizing:border-box}
+body{
+ margin:0;padding:18px 12px;
+ background:linear-gradient(145deg,#101827,#292044);
+ color:white;font-family:Arial,"Microsoft JhengHei",sans-serif;
+ text-align:center;min-height:100vh
+}
+h1{color:#f4d49b;letter-spacing:3px}
+.panel{
+ max-width:460px;margin:14px auto;padding:16px;
+ background:#ffffff12;border:1px solid #ffffff25;
+ border-radius:16px
+}
+input,button,select{
+ padding:12px;border-radius:9px;
+ border:0;font-size:15px;margin:5px
+}
+input{max-width:95%;background:#fff;color:#222}
+button{
+ background:#d9ad6b;color:#241b10;
+ font-weight:bold;cursor:pointer
+}
+button:disabled{opacity:.4}
+.secondary{background:#46516a;color:white}
+.board{
+ display:grid;grid-template-columns:repeat(4,1fr);
+ gap:7px;max-width:420px;margin:16px auto;
+ padding:10px;background:#65472c;
+ border:4px solid #a77a47;border-radius:13px
+}
+.piece{
+ width:100%;aspect-ratio:1;
+ background:linear-gradient(145deg,#f7e5b9,#d0ad70);
+ border:2px solid #9d7441;border-radius:10px;
+ font-size:clamp(23px,7vw,34px);
+ font-weight:bold;display:flex;
+ align-items:center;justify-content:center;
+ color:#33251a;cursor:pointer;
+ box-shadow:inset 0 0 7px #fff9
+}
+.piece.red{color:#c51f25}
+.piece.black{color:#222}
+.piece.hidden{
+ background:linear-gradient(145deg,#956b49,#533923);
+ color:#f5d69d;border-color:#c39b68
+}
+.piece.selected{outline:4px solid #48d9ff}
+.info{color:#e3e6ef;line-height:1.8}
+#game{display:none}
+.small{font-size:12px;color:#abb5c8}
+</style>
+</head>
+<body>
+
+<h1>♟ 線上暗棋</h1>
+<p class="small">ONLINE DARK CHESS</p>
+
+<div class="panel" id="lobby">
+ <h2>建立 / 加入房間</h2>
+ <button onclick="createRoom()">＋ 建立房間</button>
+ <br>
+ <input id="roomInput" placeholder="輸入房間代碼">
+ <button onclick="joinRoom()">加入房間</button>
+ <hr>
+ <label>
+  <input type="checkbox" id="special" checked>
+  啟用車衝馬斜
+ </label>
+ <p id="message" class="info">正在連接 Firebase...</p>
+</div>
+
+<div id="game">
+ <div class="panel">
+  <h2>遊戲房間</h2>
+  <h2 id="roomInfo"></h2>
+  <p id="playerInfo" class="info"></p>
+  <p id="status" class="info"></p>
+  <p id="turn" class="info"></p>
+  <button onclick="copyRoom()">複製房間代碼</button>
+  <button class="secondary" onclick="leaveRoom()">離開房間</button>
+ </div>
+
+ <div class="board" id="board"></div>
+
+ <div class="panel">
+  <p>🔴 紅方剩餘：<span id="redCount">16</span></p>
+  <p>⚫ 黑方剩餘：<span id="blackCount">16</span></p>
+  <p id="rulesText" class="info"></p>
+  <p id="gameMessage" class="info"></p>
+  <button onclick="restart()">重新開始</button>
+ </div>
+</div>
+
+<script type="module">
+import {initializeApp}
+ from "https://www.gstatic.com/firebasejs/11.6.0/firebase-app.js";
+
+import {
+ getDatabase,ref,set,get,onValue,runTransaction
+} from "https://www.gstatic.com/firebasejs/11.6.0/firebase-database.js";
+
+import {
+ getAuth,signInAnonymously
+} from "https://www.gstatic.com/firebasejs/11.6.0/firebase-auth.js";
+
+/* Firebase 設定 */
+const firebaseConfig={
+ apiKey:"AIzaSyADmQHxoWW9wkbk5tEC87pZRlG4LrSSkBo",
+ authDomain:"online-dark-chess.firebaseapp.com",
+ databaseURL:"https://online-dark-chess-default-rtdb.asia-southeast1.firebasedatabase.app",
+ projectId:"online-dark-chess",
+ storageBucket:"online-dark-chess.firebasestorage.app",
+ messagingSenderId:"841347393157",
+ appId:"1:841347393157:web:51b02766245979b80cebec",
+ measurementId:"G-EGD4J0DDDF"
+};
+
+const app=initializeApp(firebaseConfig);
+const db=getDatabase(app);
+const auth=getAuth(app);
+
+let uid=null;
+let room="";
+let game=null;
+let mySide="";
+let selected=-1;
+let unsubscribe=null;
+let busy=false;
+
+const names={
+ K:"帥",G:"仕",E:"相",
+ R:"車",N:"馬",C:"炮",P:"兵"
+};
+const rank={K:7,G:6,E:5,R:4,N:3,C:2,P:1};
+
+const el=id=>document.getElementById(id);
+const roomRef=()=>ref(db,"rooms/"+room);
+
+function message(s){el("message").textContent=s}
+
+try{
+ const result=await signInAnonymously(auth);
+ uid=result.user.uid;
+ message("連線成功！可以建立或加入房間了。");
+}catch(e){
+ message("登入失敗："+e.message);
+}
+
+/* 建立棋子 */
+function makePieces(){
+ const list=[
+ ...Array(1).fill(["K","red"]),
+ ...Array(2).fill(["G","red"]),
+ ...Array(2).fill(["E","red"]),
+ ...Array(2).fill(["R","red"]),
+ ...Array(2).fill(["N","red"]),
+ ...Array(2).fill(["C","red"]),
+ ...Array(5).fill(["P","red"]),
+ ...Array(1).fill(["K","black"]),
+ ...Array(2).fill(["G","black"]),
+ ...Array(2).fill(["E","black"]),
+ ...Array(2).fill(["R","black"]),
+ ...Array(2).fill(["N","black"]),
+ ...Array(2).fill(["C","black"]),
+ ...Array(5).fill(["P","black"])
+ ];
+
+ for(let i=list.length-1;i>0;i--){
+  const j=Math.floor(Math.random()*(i+1));
+  [list[i],list[j]]=[list[j],list[i]];
+ }
+
+ const board={};
+ list.forEach((p,i)=>{
+  board[i]={type:p[0],side:p[1],face:false};
+ });
+ return board;
+}
+
+function newGame(special,host){
+ return {
+  board:makePieces(),
+  turnUid:host,
+  players:{red:null,black:null},
+  firstFlipUid:null,
+  winner:null,
+  special:special
+ };
+}
+
+/* 建立房間 */
+async function createRoom(){
+ if(!uid)return message("尚未登入，請稍後再試。");
+
+ try{
+  let code="";
+  let success=false;
+
+  for(let i=0;i<5;i++){
+   code=Math.random().toString(36).slice(2,7).toUpperCase();
+   const result=await runTransaction(ref(db,"rooms/"+code),old=>{
+    if(old)return;
+    return {
+     host:uid,
+     guest:"",
+     game:newGame(el("special").checked,uid)
+    };
+   });
+   if(result.committed){success=true;break;}
+  }
+
+  if(!success)throw Error("無法建立房間，請重試。");
+  room=code;
+  enterRoom();
+ }catch(e){message("建立失敗："+e.message);}
+}
+window.createRoom=createRoom;
+
+/* 加入房間 */
+async function joinRoom(){
+ if(!uid)return message("尚未登入。");
+
+ const code=el("roomInput").value.trim().toUpperCase();
+ if(!code)return message("請輸入房間代碼。");
+
+ try{
+  const result=await runTransaction(ref(db,"rooms/"+code),old=>{
+   if(!old||old.guest||old.host===uid)return;
+   old.guest=uid;
+   old.game.turnUid=old.host;
+   return old;
+  });
+
+  if(!result.committed){
+   message("房間不存在或已經滿了。");
+   return;
+  }
+
+  room=code;
+  enterRoom();
+ }catch(e){message("加入失敗："+e.message);}
+}
+window.joinRoom=joinRoom;
+
+/* 進入房間 */
+function enterRoom(){
+ el("lobby").style.display="none";
+ el("game").style.display="block";
+ el("roomInfo").textContent=room;
+
+ if(unsubscribe)unsubscribe();
+
+ unsubscribe=onValue(roomRef(),snap=>{
+  const data=snap.val();
+  if(!data)return;
+  game=data.game;
+  draw();
+ });
+}
+
+/* 判斷相鄰 */
+function adjacent(a,b){
+ const ar=Math.floor(a/4),ac=a%4;
+ const br=Math.floor(b/4),bc=b%4;
+ return Math.abs(ar-br)+Math.abs(ac-bc)===1;
+}
+
+/* 車的直線移動 */
+function rookPath(a,b,board){
+ const ar=Math.floor(a/4),ac=a%4;
+ const br=Math.floor(b/4),bc=b%4;
+
+ if(ar!==br&&ac!==bc)return false;
+
+ const dr=Math.sign(br-ar);
+ const dc=Math.sign(bc-ac);
+ let r=ar+dr,c=ac+dc;
+
+ while(r!==br||c!==bc){
+  if(board[r*4+c])return false;
+  r+=dr;c+=dc;
+ }
+ return true;
+}
+
+/* 馬走日字 */
+function horsePath(a,b,board){
+ const ar=Math.floor(a/4),ac=a%4;
+ const br=Math.floor(b/4),bc=b%4;
+ const dr=br-ar,dc=bc-ac;
+
+ if(!(Math.abs(dr)===2&&Math.abs(dc)===1||
+      Math.abs(dr)===1&&Math.abs(dc)===2))return false;
+
+ const leg=Math.abs(dr)===2?
+  (ar+Math.sign(dr))*4+ac:
+  ar*4+ac+Math.sign(dc);
+
+ return !board[leg];
+}
+
+/* 棋子吃法 */
+function canCapture(a,b){
+ if(!a||!b||a.side===b.side)return false;
+
+ if(a.type==="P"&&b.type==="K")return false;
+ if(a.type==="K"&&b.type==="P")return true;
+
+ return rank[a.type]>=rank[b.type];
+}
+
+/* 炮隔一子吃 */
+function cannonCapture(from,to,board){
+ const fr=Math.floor(from/4),fc=from%4;
+ const tr=Math.floor(to/4),tc=to%4;
+
+ if(fr!==tr&&fc!==tc)return false;
+
+ const dr=Math.sign(tr-fr);
+ const dc=Math.sign(tc-fc);
+ let r=fr+dr,c=fc+dc,count=0;
+
+ while(r!==tr||c!==tc){
+  if(board[r*4+c])count++;
+  r+=dr;c+=dc;
+ }
+ return count===1;
+}
+
+/* 移動規則 */
+function allowed(from,to,board,special){
+ const a=board[from],b=board[to];
+ if(!a||!a.face||!b&&to===from)return false;
+ if(b&&!b.face)return false;
+
+ if(a.type==="C"&&b){
+  return cannonCapture(from,to,board)&&a.side!==b.side;
+ }
+
+ if(a.type==="C"&&!b)return adjacent(from,to);
+
+ if(!b&&!a.face)return false;
+
+ if(b&&!canCapture(a,b))return false;
+
+ if(special&&a.type==="R"){
+  return rookPath(from,to,board);
+ }
+
+ if(special&&a.type==="N"){
+  return horsePath(from,to,board);
+ }
+
+ return adjacent(from,to);
+}
+
+/* 棋盤 */
+function draw(){
+ if(!game)return;
+
+ const board=el("board");
+ board.innerHTML="";
+
+ for(let i=0;i<32;i++){
+  const p=game.board[i];
+  const cell=document.createElement("button");
+  cell.className="piece";
+
+  if(!p){
+   cell.style.visibility="hidden";
+   cell.disabled=true;
+  }else if(!p.face){
+   cell.classList.add("hidden");
+   cell.textContent="◆";
+  }else{
+   cell.textContent=names[p.type];
+   cell.classList.add(p.side);
+  }
+
+  if(selected===i)cell.classList.add("selected");
+  cell.onclick=()=>play(i);
+  board.appendChild(cell);
+ }
+
+ const count=side=>Object.values(game.board)
+  .filter(p=>p&&p.side===side).length;
+
+ el("redCount").textContent=count("red");
+ el("blackCount").textContent=count("black");
+
+ const mine=game.players.red===uid?"紅方":
+  game.players.black===uid?"黑方":"尚未分配";
+
+ el("playerInfo").textContent=
+  "你的身份："+mine;
+
+ el("turn").textContent=
+  game.winner?"遊戲結束":
+  game.turnUid===uid?"輪到你操作":"等待對手操作";
+
+ el("status").textContent=game.winner?
+  (game.winner==="draw"?"平手！":game.winner+"方獲勝！"):
+  "房間："+room;
+
+ el("rulesText").textContent=
+  "車衝馬斜："+(game.special?"開啟":"關閉");
+
+ el("gameMessage").textContent=
+  game.firstFlipUid?"紅黑陣營已確定":"等待第一枚棋子翻開";
+}
+
+/* 執行操作 */
+async function play(i){
+ if(!game||busy||game.winner)return;
+ if(game.turnUid!==uid)return;
+
+ const p=game.board[i];
+ if(!p)return;
+
+ busy=true;
+ try{
+  const result=await runTransaction(roomRef(),old=>{
+   if(!old||!old.game)return;
+   const g=old.game;
+   if(g.turnUid!==uid||g.winner)return;
+
+   const board=g.board;
+
+   /* 翻棋 */
+   if(!board[i].face){
+    board[i].face=true;
+
+    if(!g.firstFlipUid){
+     g.firstFlipUid=uid;
+     g.players[board[i].side]=uid;
+     g.players[board[i].side==="red"?"black":"red"]=
+      uid===old.host?old.guest:old.host;
+    }
+
+    g.turnUid=uid===old.host?old.guest:old.host;
+    return old;
+   }
+
+   /* 選棋 */
+   if(selected===-1){
+    if(g.players[p.side]===uid){
+     selected=i;
+    }
+    return old;
+   }
+
+   const from=selected;
+   if(from===i)return old;
+
+   const a=board[from],b=board[i];
+   if(!a||a.side!==mySideFor(g,uid))return;
+
+   if(!allowed(from,i,board,g.special))return;
+
+   board[i]=a;
+   board[from]=null;
+
+   const remaining=Object.values(board).filter(Boolean);
+   const sides=new Set(remaining.map(x=>x.side));
+
+   if(sides.size===1)g.winner=remaining[0].side;
+
+   g.turnUid=uid===old.host?old.guest:old.host;
+   return old;
+  });
+
+  if(!result.committed){
+   selected=-1;
+   return;
+  }
+ }catch(e){
+  el("gameMessage").textContent="操作失敗："+e.message;
+ }
+ finally{
+  busy=false;
+  draw();
+ }
+}
+
+/* 玩家身份 */
+function mySideFor(g,id){
+ if(g.players.red===id)return "red";
+ if(g.players.black===id)return "black";
+ return "";
+}
+
+/* 重新開始 */
+async function restart(){
+ if(!game||!room)return;
+ if(game.turnUid===null)return;
+
+ const snap=await get(roomRef());
+ const data=snap.val();
+ if(!data||data.host!==uid){
+  el("gameMessage").textContent="只有房主可以重新開始。";
+  return;
+ }
+
+ await runTransaction(roomRef(),old=>{
+  if(!old)return;
+  old.game=newGame(old.game.special,old.host);
+  return old;
+ });
+
+ selected=-1;
+}
+
+/* 複製房間代碼 */
+async function copyRoom(){
+ try{
+  await navigator.clipboard.writeText(room);
+  alert("已複製房間代碼："+room);
+ }catch(e){
+  alert("房間代碼："+room);
+ }
+}
+
+/* 離開房間 */
+function leaveRoom(){
+ if(unsubscribe)unsubscribe();
+ unsubscribe=null;
+ room="";
+ game=null;
+ selected=-1;
+ el("game").style.display="none";
+ el("lobby").style.display="block";
+}
+
+/* 點擊棋子 */
+async function handleMove(i){
+ if(!game||game.winner||game.turnUid!==uid)return;
+ const p=game.board[i];
+ if(!p)return;
+
+ if(!p.face){
+  selected=-1;
+  await play(i);
+  return;
+ }
+
+ if(selected===-1){
+  if(mySideFor(game,uid)===p.side){
+   selected=i;
+   draw();
+  }
+  return;
+ }
+
+ const from=selected;
+ if(from===i){
+  selected=-1;draw();return;
+ }
+
+ if(allowed(from,i,game.board,game.special)){
+  const result=await runTransaction(roomRef(),old=>{
+   if(!old||old.game.turnUid!==uid||old.game.winner)return;
+   const g=old.game;
+   const a=g.board[from],b=g.board[i];
+
+   if(!a||a.side!==mySideFor(g,uid)||
+      !a.face||!allowed(from,i,g.board,g.special))return;
+
+   g.board[i]=a;
+   g.board[from]=null;
+
+   const remaining=Object.values(g.board).filter(Boolean);
+   const sides=new Set(remaining.map(x=>x.side));
+   if(sides.size===1)g.winner=remaining[0].side;
+
+   g.turnUid=uid===old.host?old.guest:old.host;
+   return old;
+  });
+ }
+
+ selected=-1;
+ draw();
+}
+
+window.joinRoom=joinRoom;
+window.restart=restart;
+window.copyRoom=copyRoom;
+window.leaveRoom=leaveRoom;
+
+/* 覆蓋棋子點擊事件 */
+const oldDraw=draw;
+draw=function(){
+ oldDraw();
+ if(!game)return;
+ [...el("board").children].forEach((cell,i)=>{
+  cell.onclick=()=>handleMove(i);
+ });
+};
+
+</script>
+</body>
+</html>
