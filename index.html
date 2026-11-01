@@ -8,57 +8,135 @@
 
 <style>
 *{box-sizing:border-box}
+
 body{
-  margin:0;padding:18px 12px;min-height:100vh;
-  color:white;text-align:center;
+  margin:0;
+  padding:18px 12px;
+  min-height:100vh;
+  color:white;
+  text-align:center;
   font-family:Arial,"Microsoft JhengHei",sans-serif;
-  background:radial-gradient(circle at 50% 20%,#493b78,transparent 45%),
-  linear-gradient(145deg,#101827,#292044);
+  background:
+    radial-gradient(circle at 50% 20%,#493b78,transparent 45%),
+    linear-gradient(145deg,#101827,#292044);
 }
+
 h1{color:#f4d49b;letter-spacing:3px}
+
 .panel{
-  max-width:460px;margin:14px auto;padding:18px;
-  background:#ffffff12;border:1px solid #ffffff35;
-  border-radius:18px;backdrop-filter:blur(15px);
+  max-width:460px;
+  margin:14px auto;
+  padding:18px;
+  background:#ffffff12;
+  border:1px solid #ffffff35;
+  border-radius:18px;
+  backdrop-filter:blur(15px);
   box-shadow:0 8px 30px #0003;
 }
+
 input,button{
-  padding:12px;border-radius:10px;border:0;
-  font-size:15px;margin:5px;
+  padding:12px;
+  border-radius:10px;
+  border:0;
+  font-size:15px;
+  margin:5px;
 }
-input{max-width:95%;background:white;color:#222}
+
+input{
+  max-width:95%;
+  background:white;
+  color:#222;
+}
+
 button{
-  background:#d9ad6b;color:#241b10;
-  font-weight:bold;cursor:pointer;
+  background:#d9ad6b;
+  color:#241b10;
+  font-weight:bold;
+  cursor:pointer;
 }
-.secondary{background:#46516a;color:white}
+
+.secondary{
+  background:#46516a;
+  color:white;
+}
+
+button:disabled{
+  cursor:not-allowed;
+  opacity:.5;
+}
+
 .board{
-  display:grid;grid-template-columns:repeat(4,1fr);
-  gap:7px;max-width:420px;margin:16px auto;
-  padding:10px;background:#65472c;
-  border:4px solid #a77a47;border-radius:13px;
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:7px;
+  max-width:420px;
+  margin:16px auto;
+  padding:10px;
+  background:#65472c;
+  border:4px solid #a77a47;
+  border-radius:13px;
 }
+
 .piece{
-  width:100%;aspect-ratio:1;
+  width:100%;
+  aspect-ratio:1;
   background:linear-gradient(145deg,#f7e5b9,#d0ad70);
-  border:2px solid #9d7441;border-radius:10px;
-  font-size:clamp(23px,7vw,34px);font-weight:bold;
-  display:flex;align-items:center;justify-content:center;
-  color:#33251a;cursor:pointer;
+  border:2px solid #9d7441;
+  border-radius:10px;
+  font-size:clamp(23px,7vw,34px);
+  font-weight:bold;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  color:#33251a;
+  cursor:pointer;
+  padding:0;
+  margin:0;
 }
+
 .piece.red{color:#c51f25}
 .piece.black{color:#222}
+
 .piece.hidden{
   background:linear-gradient(145deg,#956b49,#533923);
-  color:#f5d69d;border-color:#c39b68;
+  color:#f5d69d;
+  border-color:#c39b68;
 }
-.piece.selected{outline:4px solid #48d9ff}
-.piece.empty{visibility:hidden}
-.info{color:#e3e6ef;line-height:1.8}
-.small{font-size:12px;color:#abb5c8}
+
+.piece.selected{
+  outline:4px solid #48d9ff;
+  z-index:1;
+}
+
+.piece.empty{
+  visibility:visible;
+  background:#ffffff12;
+  border:2px dashed #ffffff35;
+  box-shadow:none;
+  opacity:.65;
+}
+
+.info{
+  color:#e3e6ef;
+  line-height:1.8;
+}
+
+.small{
+  font-size:12px;
+  color:#abb5c8;
+}
+
 #game{display:none}
-#message,#gameMessage{overflow-wrap:anywhere}
-hr{border:0;border-top:1px solid #ffffff25;margin:18px 0}
+
+#message,#gameMessage{
+  overflow-wrap:anywhere;
+}
+
+hr{
+  border:0;
+  border-top:1px solid #ffffff25;
+  margin:18px 0;
+}
 </style>
 </head>
 
@@ -68,40 +146,59 @@ hr{border:0;border-top:1px solid #ffffff25;margin:18px 0}
 <p class="small">ONLINE DARK CHESS</p>
 
 <div class="panel" id="lobby">
+
   <h2>建立 / 加入房間</h2>
+
   <button onclick="createRoom()">＋ 建立房間</button>
+
   <br>
+
   <input id="roomInput" placeholder="輸入房間代碼">
   <button onclick="joinRoom()">加入房間</button>
+
   <hr>
+
   <label>
     <input type="checkbox" id="special" checked>
     啟用車衝馬斜
   </label>
+
   <p id="message" class="info">正在連接 Firebase...</p>
+
 </div>
 
 <div id="game">
+
   <div class="panel">
+
     <h2>遊戲房間</h2>
     <h2 id="roomInfo"></h2>
+
     <p id="playerInfo" class="info"></p>
     <p id="status" class="info"></p>
     <p id="turn" class="info"></p>
+
     <button onclick="copyRoom()">複製房間代碼</button>
     <button class="secondary" onclick="leaveRoom()">返回大廳</button>
+
   </div>
 
   <div class="board" id="board"></div>
 
   <div class="panel">
+
     <p>🔴 紅方剩餘：<span id="redCount">16</span></p>
     <p>⚫ 黑方剩餘：<span id="blackCount">16</span></p>
+
     <p id="rulesText" class="info"></p>
     <p id="gameMessage" class="info"></p>
+
     <button onclick="restart()">重新開始</button>
+
   </div>
+
 </div>
+
 
 <script type="module">
 
@@ -109,12 +206,19 @@ import {initializeApp}
 from "https://www.gstatic.com/firebasejs/11.6.0/firebase-app.js";
 
 import {
-  getDatabase,ref,get,onValue,runTransaction
-} from "https://www.gstatic.com/firebasejs/11.6.0/firebase-database.js";
+  getDatabase,
+  ref,
+  get,
+  onValue,
+  runTransaction
+}
+from "https://www.gstatic.com/firebasejs/11.6.0/firebase-database.js";
 
 import {
-  getAuth,signInAnonymously
-} from "https://www.gstatic.com/firebasejs/11.6.0/firebase-auth.js";
+  getAuth,
+  signInAnonymously
+}
+from "https://www.gstatic.com/firebasejs/11.6.0/firebase-auth.js";
 
 
 /* Firebase 設定 */
@@ -134,6 +238,9 @@ const app=initializeApp(firebaseConfig);
 const db=getDatabase(app);
 const auth=getAuth(app);
 
+
+/* 遊戲變數 */
+
 let uid=null;
 let room="";
 let game=null;
@@ -142,15 +249,27 @@ let unsubscribe=null;
 let busy=false;
 
 const names={
-  K:"帥",G:"仕",E:"相",R:"車",
-  N:"馬",C:"炮",P:"兵"
+  K:"帥",
+  G:"仕",
+  E:"相",
+  R:"車",
+  N:"馬",
+  C:"炮",
+  P:"兵"
 };
 
 const rank={
-  K:7,G:6,E:5,R:4,N:3,C:2,P:1
+  K:7,
+  G:6,
+  E:5,
+  R:4,
+  N:3,
+  C:2,
+  P:1
 };
 
 const el=id=>document.getElementById(id);
+
 const roomRef=()=>ref(db,"rooms/"+room);
 
 function message(text){
@@ -158,14 +277,20 @@ function message(text){
 }
 
 
-/* 登入 */
+/* Firebase 登入 */
 
 try{
+
   const result=await signInAnonymously(auth);
+
   uid=result.user.uid;
+
   message("Firebase 登入成功，可以建立或加入房間。");
+
 }catch(error){
+
   message("Firebase 登入失敗："+error.message);
+
 }
 
 
@@ -192,21 +317,27 @@ function makePieces(){
   ];
 
   for(let i=list.length-1;i>0;i--){
+
     const j=Math.floor(Math.random()*(i+1));
+
     [list[i],list[j]]=[list[j],list[i]];
+
   }
 
   const board={};
 
   list.forEach((p,i)=>{
+
     board[i]={
       type:p[0],
       side:p[1],
       face:false
     };
+
   });
 
   return board;
+
 }
 
 
@@ -217,25 +348,41 @@ function newGame(special,host){
   return {
     board:makePieces(),
     turnUid:host,
-    players:{red:null,black:null},
+    players:{
+      red:null,
+      black:null
+    },
     firstFlipUid:null,
     winner:null,
     special:!!special
   };
+
 }
+
+
+/* 修復舊資料 */
 
 function fixGame(g){
 
   if(!g.players){
-    g.players={red:null,black:null};
+    g.players={
+      red:null,
+      black:null
+    };
   }
 
   if(!g.board)g.board={};
 
-  if(g.firstFlipUid===undefined)g.firstFlipUid=null;
-  if(g.winner===undefined)g.winner=null;
+  if(g.firstFlipUid===undefined){
+    g.firstFlipUid=null;
+  }
+
+  if(g.winner===undefined){
+    g.winner=null;
+  }
 
   return g;
+
 }
 
 
@@ -257,7 +404,9 @@ async function createRoom(){
     for(let i=0;i<10;i++){
 
       const code=Math.random()
-        .toString(36).substring(2,7).toUpperCase();
+        .toString(36)
+        .substring(2,7)
+        .toUpperCase();
 
       const target=ref(db,"rooms/"+code);
 
@@ -274,9 +423,12 @@ async function createRoom(){
       });
 
       if(result.committed){
+
         createdCode=code;
         break;
+
       }
+
     }
 
     if(!createdCode){
@@ -285,17 +437,21 @@ async function createRoom(){
 
     room=createdCode;
     selected=-1;
+
     enterRoom();
 
   }catch(error){
+
     message("建立房間失敗："+error.message);
+
   }
+
 }
 
 window.createRoom=createRoom;
 
 
-/* 加入房間：只交易 guest 欄位 */
+/* 加入房間 */
 
 async function joinRoom(){
 
@@ -316,6 +472,7 @@ async function joinRoom(){
   try{
 
     const target=ref(db,"rooms/"+code);
+
     const snap=await get(target);
 
     if(!snap.exists()){
@@ -340,7 +497,6 @@ async function joinRoom(){
       return;
     }
 
-    // 只對 guest 欄位執行交易
     const guestRef=ref(db,"rooms/"+code+"/guest");
 
     const result=await runTransaction(guestRef,current=>{
@@ -363,25 +519,30 @@ async function joinRoom(){
       const guestValue=latest.val();
 
       if(guestValue){
-        message("加入失敗：資料庫中的 guest 已有玩家。");
+        message("加入失敗：房間已有玩家紀錄。");
       }else{
-        message("加入交易未成功，請檢查 Firebase 資料庫權限。");
+        message("加入交易未成功，請檢查 Firebase 寫入權限。");
       }
 
-      console.log("guest 欄位目前內容：",guestValue);
+      console.log("guest 欄位：",guestValue);
+
       return;
+
     }
 
     room=code;
     selected=-1;
+
     enterRoom();
 
   }catch(error){
 
     console.error("加入房間錯誤：",error);
+
     message("加入錯誤："+error.message);
 
   }
+
 }
 
 window.joinRoom=joinRoom;
@@ -393,20 +554,26 @@ function enterRoom(){
 
   el("lobby").style.display="none";
   el("game").style.display="block";
+
   el("roomInfo").textContent=room;
 
-  if(unsubscribe)unsubscribe();
+  if(unsubscribe){
+    unsubscribe();
+  }
 
   unsubscribe=onValue(roomRef(),snap=>{
 
     const data=snap.val();
 
     if(!data || !data.game){
+
       el("gameMessage").textContent="房間資料不存在。";
       return;
+
     }
 
     game=fixGame(data.game);
+
     draw();
 
   },error=>{
@@ -418,39 +585,53 @@ function enterRoom(){
 }
 
 
-/* 判斷玩家陣營 */
+/* 玩家陣營 */
 
 function mySideFor(g,id){
 
   if(g.players.red===id)return "red";
+
   if(g.players.black===id)return "black";
 
   return "";
+
 }
 
 
-/* 位置判斷 */
+/* 相鄰位置 */
 
 function adjacent(a,b){
 
-  const ar=Math.floor(a/4),ac=a%4;
-  const br=Math.floor(b/4),bc=b%4;
+  const ar=Math.floor(a/4);
+  const ac=a%4;
+
+  const br=Math.floor(b/4);
+  const bc=b%4;
 
   return Math.abs(ar-br)+Math.abs(ac-bc)===1;
+
 }
+
+
+/* 車直線移動 */
 
 function rookPath(a,b,board){
 
-  const ar=Math.floor(a/4),ac=a%4;
-  const br=Math.floor(b/4),bc=b%4;
+  const ar=Math.floor(a/4);
+  const ac=a%4;
+
+  const br=Math.floor(b/4);
+  const bc=b%4;
 
   if(ar!==br && ac!==bc)return false;
+
   if(a===b)return false;
 
   const dr=Math.sign(br-ar);
   const dc=Math.sign(bc-ac);
 
-  let r=ar+dr,c=ac+dc;
+  let r=ar+dr;
+  let c=ac+dc;
 
   while(r!==br || c!==bc){
 
@@ -458,28 +639,40 @@ function rookPath(a,b,board){
 
     r+=dr;
     c+=dc;
+
   }
 
   return true;
+
 }
+
+
+/* 馬走日字 */
 
 function horsePath(a,b,board){
 
-  const ar=Math.floor(a/4),ac=a%4;
-  const br=Math.floor(b/4),bc=b%4;
+  const ar=Math.floor(a/4);
+  const ac=a%4;
 
-  const dr=br-ar,dc=bc-ac;
+  const br=Math.floor(b/4);
+  const bc=b%4;
+
+  const dr=br-ar;
+  const dc=bc-ac;
 
   if(!(
     (Math.abs(dr)===2 && Math.abs(dc)===1) ||
     (Math.abs(dr)===1 && Math.abs(dc)===2)
-  ))return false;
+  )){
+    return false;
+  }
 
   const leg=Math.abs(dr)===2
-    ? (ar+Math.sign(dr))*4+ac
-    : ar*4+ac+Math.sign(dc);
+    ?(ar+Math.sign(dr))*4+ac
+    :ar*4+ac+Math.sign(dc);
 
   return !board[leg];
+
 }
 
 
@@ -488,36 +681,52 @@ function horsePath(a,b,board){
 function canCapture(a,b){
 
   if(!a || !b)return false;
+
   if(a.side===b.side)return false;
 
   if(a.type==="P" && b.type==="K")return false;
+
   if(a.type==="K" && b.type==="P")return true;
 
   return rank[a.type]>=rank[b.type];
+
 }
+
+
+/* 炮隔一子吃 */
 
 function cannonCapture(from,to,board){
 
-  const fr=Math.floor(from/4),fc=from%4;
-  const tr=Math.floor(to/4),tc=to%4;
+  const fr=Math.floor(from/4);
+  const fc=from%4;
+
+  const tr=Math.floor(to/4);
+  const tc=to%4;
 
   if(fr!==tr && fc!==tc)return false;
+
   if(from===to)return false;
 
   const dr=Math.sign(tr-fr);
   const dc=Math.sign(tc-fc);
 
-  let r=fr+dr,c=fc+dc,count=0;
+  let r=fr+dr;
+  let c=fc+dc;
+  let count=0;
 
   while(r!==tr || c!==tc){
 
-    if(board[r*4+c])count++;
+    if(board[r*4+c]){
+      count++;
+    }
 
     r+=dr;
     c+=dc;
+
   }
 
   return count===1;
+
 }
 
 
@@ -528,8 +737,12 @@ function allowed(from,to,board,special){
   const a=board[from];
   const b=board[to];
 
-  if(!a || !a.face || from===to)return false;
+  if(!a || !a.face)return false;
+
+  if(from===to)return false;
+
   if(b && !b.face)return false;
+
   if(b && a.side===b.side)return false;
 
   if(a.type==="C"){
@@ -539,9 +752,12 @@ function allowed(from,to,board,special){
     }
 
     return adjacent(from,to);
+
   }
 
-  if(b && !canCapture(a,b))return false;
+  if(b && !canCapture(a,b)){
+    return false;
+  }
 
   if(special && a.type==="R"){
     return rookPath(from,to,board);
@@ -552,10 +768,11 @@ function allowed(from,to,board,special){
   }
 
   return adjacent(from,to);
+
 }
 
 
-/* 顯示棋盤 */
+/* 繪製棋盤 */
 
 function draw(){
 
@@ -564,11 +781,13 @@ function draw(){
   game=fixGame(game);
 
   const boardEl=el("board");
+
   boardEl.innerHTML="";
 
   for(let i=0;i<32;i++){
 
     const p=game.board[i];
+
     const cell=document.createElement("button");
 
     cell.className="piece";
@@ -576,7 +795,8 @@ function draw(){
     if(!p){
 
       cell.classList.add("empty");
-      cell.disabled=true;
+      cell.textContent="";
+      cell.disabled=false;
 
     }else if(!p.face){
 
@@ -595,20 +815,24 @@ function draw(){
     }
 
     cell.onclick=()=>handleMove(i);
+
     boardEl.appendChild(cell);
+
   }
 
   const count=side=>Object.values(game.board)
     .filter(p=>p && p.side===side).length;
 
   el("redCount").textContent=count("red");
+
   el("blackCount").textContent=count("black");
 
   const mine=mySideFor(game,uid);
 
   el("playerInfo").textContent="你的身份："+(
     mine==="red"?"🔴 紅方":
-    mine==="black"?"⚫ 黑方":"尚未分配"
+    mine==="black"?"⚫ 黑方":
+    "尚未分配"
   );
 
   el("turn").textContent=game.winner
@@ -618,84 +842,112 @@ function draw(){
       :"等待對手操作";
 
   el("status").textContent=game.winner
-    ?game.winner==="draw"?"平手！":(game.winner==="red"?"紅方":"黑方")+"獲勝！"
+    ?game.winner==="draw"
+      ?"平手！"
+      :(game.winner==="red"?"紅方":"黑方")+"獲勝！"
     :"房間："+room;
 
   el("rulesText").textContent=
     "車衝馬斜："+(game.special?"開啟":"關閉");
 
   if(!game.firstFlipUid){
+
     el("gameMessage").textContent="等待第一枚棋子翻開";
+
   }else{
+
     el("gameMessage").textContent="紅黑陣營已確定";
+
   }
+
 }
 
 
-/* 棋子操作 */
+/* 點擊棋子或空格 */
 
 async function handleMove(i){
 
   if(!game || busy || game.winner)return;
+
   if(game.turnUid!==uid)return;
 
   const p=game.board[i];
-  if(!p)return;
 
-  const snap=await get(roomRef());
-  const data=snap.val();
-
-  if(!data || !data.guest){
-    el("gameMessage").textContent="請等待第二位玩家加入。";
-    return;
-  }
-
-  if(!p.face){
-    selected=-1;
-    await flipPiece(i);
-    return;
-  }
-
-  const mySide=mySideFor(game,uid);
-
-  if(!mySide){
-    el("gameMessage").textContent="尚未分配陣營。";
-    return;
-  }
+  /* 尚未選取棋子 */
 
   if(selected===-1){
 
+    if(!p)return;
+
+    if(!p.face){
+
+      await flipPiece(i);
+
+      return;
+
+    }
+
+    const mySide=mySideFor(game,uid);
+
     if(p.side===mySide){
+
       selected=i;
+
       draw();
+
     }
 
     return;
+
   }
+
+  /* 已經選取棋子 */
 
   const from=selected;
 
   if(from===i){
+
     selected=-1;
+
     draw();
+
     return;
+
   }
 
   const a=game.board[from];
 
-  if(!a || a.side!==mySide){
+  if(!a){
+
     selected=-1;
+
     draw();
+
     return;
+
+  }
+
+  if(p && !p.face){
+
+    el("gameMessage").textContent="不能移動到未翻開的棋子。";
+
+    return;
+
   }
 
   if(!allowed(from,i,game.board,game.special)){
-    el("gameMessage").textContent="這一步不能移動。";
+
+    el("gameMessage").textContent="這個位置不能移動。";
+
     return;
+
   }
 
   await movePiece(from,i);
+
 }
+
+window.handleMove=handleMove;
 
 
 /* 翻棋 */
@@ -703,6 +955,7 @@ async function handleMove(i){
 async function flipPiece(i){
 
   if(busy)return;
+
   busy=true;
 
   try{
@@ -724,21 +977,31 @@ async function flipPiece(i){
       if(!g.firstFlipUid){
 
         g.firstFlipUid=uid;
+
         g.players[p.side]=uid;
 
-        const other=uid===old.host?old.guest:old.host;
+        const other=uid===old.host
+          ?old.guest
+          :old.host;
 
         g.players[p.side==="red"?"black":"red"]=other;
+
       }
 
-      g.turnUid=uid===old.host?old.guest:old.host;
+      g.turnUid=uid===old.host
+        ?old.guest
+        :old.host;
 
       old.game=g;
+
       return old;
+
     });
 
     if(!result.committed){
+
       el("gameMessage").textContent="翻棋失敗，請再試一次。";
+
     }
 
   }catch(error){
@@ -748,9 +1011,13 @@ async function flipPiece(i){
   }finally{
 
     busy=false;
+
     selected=-1;
+
     draw();
+
   }
+
 }
 
 
@@ -759,6 +1026,7 @@ async function flipPiece(i){
 async function movePiece(from,to){
 
   if(busy)return;
+
   busy=true;
 
   try{
@@ -772,29 +1040,45 @@ async function movePiece(from,to){
       if(g.turnUid!==uid || g.winner)return;
 
       const side=mySideFor(g,uid);
+
       const a=g.board[from];
 
       if(!a || a.side!==side)return;
+
       if(!allowed(from,to,g.board,g.special))return;
 
       g.board[to]=a;
+
       g.board[from]=null;
 
-      const remaining=Object.values(g.board).filter(Boolean);
-      const sides=new Set(remaining.map(p=>p.side));
+      const remaining=Object.values(g.board)
+        .filter(Boolean);
+
+      const sides=new Set(
+        remaining.map(p=>p.side)
+      );
 
       if(sides.size===1){
+
         g.winner=remaining[0].side;
+
       }
 
-      g.turnUid=uid===old.host?old.guest:old.host;
+      g.turnUid=uid===old.host
+        ?old.guest
+        :old.host;
 
       old.game=g;
+
       return old;
+
     });
 
     if(!result.committed){
-      el("gameMessage").textContent="移動失敗，請重新選擇棋子。";
+
+      el("gameMessage").textContent=
+        "移動失敗，請重新選擇棋子。";
+
     }
 
   }catch(error){
@@ -804,9 +1088,13 @@ async function movePiece(from,to){
   }finally{
 
     busy=false;
+
     selected=-1;
+
     draw();
+
   }
+
 }
 
 
@@ -819,23 +1107,34 @@ async function restart(){
   try{
 
     const snap=await get(roomRef());
+
     const data=snap.val();
 
     if(!data || data.host!==uid){
+
       el("gameMessage").textContent="只有房主可以重新開始。";
+
       return;
+
     }
 
     const result=await runTransaction(roomRef(),old=>{
 
       if(!old || !old.game || old.host!==uid)return;
 
-      old.game=newGame(old.game.special,old.host);
+      old.game=newGame(
+        old.game.special,
+        old.host
+      );
+
       return old;
+
     });
 
     if(!result.committed){
+
       el("gameMessage").textContent="重新開始失敗。";
+
     }
 
     selected=-1;
@@ -845,23 +1144,30 @@ async function restart(){
     el("gameMessage").textContent="重新開始錯誤："+error.message;
 
   }
+
 }
 
 window.restart=restart;
 
 
-/* 複製代碼 */
+/* 複製房間代碼 */
 
 async function copyRoom(){
 
   if(!room)return;
 
   try{
+
     await navigator.clipboard.writeText(room);
+
     alert("已複製房間代碼："+room);
+
   }catch(error){
+
     alert("房間代碼："+room);
+
   }
+
 }
 
 window.copyRoom=copyRoom;
@@ -871,7 +1177,9 @@ window.copyRoom=copyRoom;
 
 function leaveRoom(){
 
-  if(unsubscribe)unsubscribe();
+  if(unsubscribe){
+    unsubscribe();
+  }
 
   unsubscribe=null;
   room="";
@@ -880,10 +1188,12 @@ function leaveRoom(){
 
   el("game").style.display="none";
   el("lobby").style.display="block";
+
 }
 
 window.leaveRoom=leaveRoom;
 
 </script>
+
 </body>
 </html>
